@@ -1,8 +1,16 @@
+// main.js
 document.addEventListener("DOMContentLoaded", function () {
-  const submitForm = document.getElementById("inputBook");
-  submitForm.addEventListener("submit", function (event) {
+  const inputBookForm = document.getElementById("inputBook");
+  const searchBookForm = document.getElementById("searchBook");
+
+  inputBookForm.addEventListener("submit", function (event) {
     event.preventDefault();
     addBook();
+  });
+
+  searchBookForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+    searchBook();
   });
 
   if (isStorageExist()) {
@@ -10,14 +18,11 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
-// Fungsi ini berguna untuk menyimpan data input ke dalam console dalam bentuk data object
 function addBook() {
   const textBook = document.getElementById("inputBookTitle").value;
   const textAuthor = document.getElementById("inputBookAuthor").value;
   const bookYear = document.getElementById("inputBookYear").value;
-  const checkBookIsComplete = document.getElementById(
-    "inputBookIsComplete"
-  ).value;
+  const checkBookIsComplete = document.getElementById("inputBookIsComplete").checked;
 
   const generateID = generateId();
   function generateId() {
@@ -28,171 +33,158 @@ function addBook() {
     textBook,
     textAuthor,
     bookYear,
-    false
+    checkBookIsComplete
   );
   books.push(bookObject);
 
   document.dispatchEvent(new Event(RENDER_EVENT));
-  //   local storage
   saveData();
 }
 
-function generateBookObject(id, book, author, bookYear, isCompleted) {
+function generateBookObject(id, title, author, year, isComplete) {
   return {
     id,
-    book,
+    title,
     author,
-    bookYear,
-    isCompleted,
+    year,
+    isComplete,
   };
 }
 
-const books = [];
-const RENDER_EVENT = "renderBook";
+const books =[];
+const RENDER_EVENT = "render_book"
 
 document.addEventListener(RENDER_EVENT, function () {
-  const uncompleteBookList = document.getElementById("incompleteBookshelfList");
-  uncompleteBookList.innerHTML = "";
-  const completeBookList = document.getElementById("completeBookshelfList");
-  completeBookList.innerHTML = "";
+  const incompleteBookshelfList = document.getElementById("incompleteBookshelfList");
+  incompleteBookshelfList.innerHTML = "";
+  const completeBookshelfList = document.getElementById("completeBookshelfList");
+  completeBookshelfList.innerHTML = "";
   for (const bookItem of books) {
     const bookElement = readBook(bookItem);
-    if (!bookItem.isCompleted) {
-      uncompleteBookList.append(bookElement);
-    } else if (inputBookIsComplete.isCompleted) {
-      completeBookList.append(bookElement);
-    } else completeBookList.append(bookElement);
+    if (!bookItem.isComplete) {
+      incompleteBookshelfList.appendChild(bookElement);
+    } else {
+      completeBookshelfList.appendChild(bookElement);
+    }
   }
 });
 
-// Fungsi untuk menghasilkan item untuk mengisi container "Yang Harus Dilakukan"
 function readBook(bookObject) {
   const textTitle = document.createElement("h3");
-  textTitle.innerText = bookObject.book;
+  textTitle.innerText = bookObject.title;
   const textAuthor = document.createElement("p");
-  textAuthor.innerText = bookObject.author;
+  textAuthor.innerText = "Penulis: " + bookObject.author;
   const textYear = document.createElement("p");
-  textYear.innerText = bookObject.bookYear;
+  textYear.innerText = "Tahun: " + bookObject.year;
 
   const textContainer = document.createElement("article");
   textContainer.classList.add("book_item");
-  textContainer.append(textTitle, textAuthor, textYear);
+  textContainer.appendChild(textTitle);
+  textContainer.appendChild(textAuthor);
+  textContainer.appendChild(textYear);
 
   const container = document.createElement("div");
   container.classList.add("action");
-  container.append(textContainer);
+  container.appendChild(textContainer);
   container.setAttribute("id", `book-${bookObject.id}`);
 
-  if (!bookObject.isCompleted) {
+  if (!bookObject.isComplete) {
     const selesaiButton = document.createElement("button");
     selesaiButton.classList.add("green");
     selesaiButton.innerText = "Selesai dibaca";
-
     selesaiButton.addEventListener("click", function () {
-      addBookToCompletedList(bookObject.id);
+      moveBook(bookObject.id, true);
     });
 
-    container.append(selesaiButton);
+    container.appendChild(selesaiButton);
 
     const hapusButton = document.createElement("button");
     hapusButton.classList.add("red");
-    hapusButton.innerText = "Hapus Buku";
+    hapusButton.innerText = "Hapus buku";
     hapusButton.addEventListener("click", function () {
-      removeBookFromCompletedList(bookObject.id);
+      deleteBook(bookObject.id);
     });
-    container.append(hapusButton);
+    container.appendChild(hapusButton);
+  } else {
+    const belumSelesaiButton = document.createElement("button");
+    belumSelesaiButton.classList.add("green");
+    belumSelesaiButton.innerText = "Belum selesai dibaca";
+    belumSelesaiButton.addEventListener("click", function () {
+      moveBook(bookObject.id, false);
+    });
+
+    container.appendChild(belumSelesaiButton);
+
+    const hapusButton = document.createElement("button");
+    hapusButton.classList.add("red");
+    hapusButton.innerText = "Hapus buku";
+    hapusButton.addEventListener("click", function () {
+      deleteBook(bookObject.id);
+    });
+    container.appendChild(hapusButton);
   }
 
   return container;
 }
 
-const checklist = document.getElementById("inputBookIsComplete");
-const checkbox = checklist.querySelector("input[type='checkbox']");
-checkbox.addEventListener("change", function () {
-  updateChecklistStatus();
-});
-function updateChecklistStatus() {
-  if (checkbox.checked) {
-    addBookToCompletedList(bookObject.id);
-  } else {
-    listItem.classList.remove("checked");
+function moveBook(id, isComplete) {
+  const bookIndex = books.findIndex(book => book.id === id);
+  if (bookIndex !== -1) {
+    books[bookIndex].isComplete = isComplete;
+    saveData();
+    document.dispatchEvent(new Event(RENDER_EVENT));
   }
 }
 
-// fUNGSI INI BERFUNGSI U/ MEMINDAHKAN TODO DARI RAK "YANG HARUS DILAKUKAN" KE RAK 'YANG SUDAH DILAKUKAN'
-
-function addBookToCompletedList(bookId) {
-  const bookTarget = findBook(bookId);
-
-  if (bookTarget == null) return;
-
-  bookTarget.isCompleted = true;
-  document.dispatchEvent(new Event(RENDER_EVENT));
-  //   local storage
-  saveData();
+function deleteBook(id) {
+  const bookIndex = books.findIndex(book => book.id === id);
+  if (bookIndex !== -1) {
+    books.splice(bookIndex, 1);
+    saveData();
+    document.dispatchEvent(new Event(RENDER_EVENT));
+  }
 }
 
-function findBook(bookId) {
-  for (const bookItem of books) {
-    if (bookItem.id === bookId) {
-      return bookItem;
+function searchBook() {
+  const searchTitle = document.getElementById("searchBookTitle").value.toLowerCase();
+  const filteredBooks = books.filter(book => book.title.toLowerCase().includes(searchTitle));
+  const incompleteBookshelfList = document.getElementById("incompleteBookshelfList");
+  const completeBookshelfList = document.getElementById("completeBookshelfList");
+  incompleteBookshelfList.innerHTML = "";
+  completeBookshelfList.innerHTML = "";
+  for (const bookItem of filteredBooks) {
+    const bookElement = readBook(bookItem);
+    if (!bookItem.isComplete) {
+      incompleteBookshelfList.appendChild(bookElement);
+    } else {
+      completeBookshelfList.appendChild(bookElement);
     }
-  }
-  return null;
-}
-
-function removeBookFromCompletedList(bookId) {
-  const bookTarget = findBookIndex(bookId);
-
-  if (bookTarget === -1) return;
-  books.splice(bookTarget, 1);
-  document.dispatchEvent(new Event(RENDER_EVENT));
-  //   local storage
-  saveData();
-}
-
-function findBookIndex(bookId) {
-  for (const index in books) {
-    if (books[index].id === bookId) {
-      return indexedDB;
-    }
-  }
-  return -1;
-}
-
-// save data to local storage
-function saveData() {
-  if (isStorageExist()) {
-    const parsed = JSON.stringify(books);
-    localStorage.setItem(STORAGE_KEY, parsed);
-    document.dispatchEvent(new Event(SAVED_EVENT));
   }
 }
 
 const SAVED_EVENT = "saved-read";
 const STORAGE_KEY = "BOOKSHELF_APPS";
 
-function isStorageExist() {
-  if (typeof Storage === undefined) {
-    alert("Browser kamu tidak mendukung local storage");
-    return false;
+function saveData() {
+  if (isStorageExist()) {
+    const parsed = JSON.stringify(books);
+    localStorage.setItem(STORAGE_KEY, parsed);
   }
-  return true;
 }
-
-document.addEventListener(SAVED_EVENT, function () {
-  console.log(localStorage.getItem(STORAGE_KEY));
-});
-
-// Fungsi untuk menampilkan data yang telah disimpan di localstorage
 
 function loadDataFromStorage() {
   const serializedData = localStorage.getItem(STORAGE_KEY);
   let data = JSON.parse(serializedData);
   if (data !== null) {
-    for (const book of data) {
-      books.push(book);
-    }
+    books.push(...data);
+    document.dispatchEvent(new Event(RENDER_EVENT));
   }
-  document.dispatchEvent(new Event(RENDER_EVENT));
+}
+
+function isStorageExist() {
+  if (typeof Storage === "undefined") {
+    alert("Browser kamu tidak mendukung local storage");
+    return false;
+  }
+  return true;
 }
