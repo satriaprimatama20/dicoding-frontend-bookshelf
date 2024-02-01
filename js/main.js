@@ -21,7 +21,8 @@ document.addEventListener("DOMContentLoaded", function () {
 function addBook() {
   const textBook = document.getElementById("inputBookTitle").value;
   const textAuthor = document.getElementById("inputBookAuthor").value;
-  const bookYear = document.getElementById("inputBookYear").value;
+  const bookYear = parseInt(document.getElementById("inputBookYear").value); // Convert to number
+  ;
   const checkBookIsComplete = document.getElementById("inputBookIsComplete").checked;
 
   const generateID = generateId();
@@ -51,7 +52,7 @@ function generateBookObject(id, title, author, year, isComplete) {
   };
 }
 
-const books =[];
+const books = [];
 const RENDER_EVENT = "render_book"
 
 document.addEventListener(RENDER_EVENT, function () {
